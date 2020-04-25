@@ -1,0 +1,7 @@
+.DS_Store
+**/.vscode/
+.vscode-test
+__pycache__
+**/.venv*/
+.python-version
+
