@@ -17,7 +17,6 @@ class CelestialBody(pygame.sprite.Sprite):
         referenceRadius (int): Radius in pixels corresponding to a relative radius of one.
     """
     origo = (0, 0)
-    zoom = 1
     referenceRadius = 15
 
     def __init__(self, radius, color, rings=[], minRadius=1):
@@ -35,11 +34,12 @@ class CelestialBody(pygame.sprite.Sprite):
         self.color = color
         self.rings = rings
         self.minRadius = minRadius
+        self.zoom = 1
         self.drawCelestialBody()
 
     def drawCelestialBody(self):
         """Update sprite drawing of a celestial body."""
-        r = max(self.minRadius, round(self.radius * CelestialBody.referenceRadius * CelestialBody.zoom))
+        r = max(self.minRadius, round(self.radius * CelestialBody.referenceRadius * self.zoom))
         side = r * 2
         if len(self.rings) > 0:
             side = max(r + 1, math.ceil(self.rings[-1] * 2 * r))
@@ -53,13 +53,6 @@ class CelestialBody(pygame.sprite.Sprite):
             width = 0 if ring == r + 1 else 1
             pygame.draw.ellipse(self.image, self.color, (side // 2 - ring, side // 2 - max(1, r // 2), ring * 2, r), width)
         self.rect = self.image.get_rect()
-
-    @classmethod
-    def setZoom(cls, zoom, spriteGroup):
-        """Change zoom and update planet drawing."""
-        cls.zoom = zoom
-        for sprite in spriteGroup:
-            sprite.drawCelestialBody()
 
 
 class Sun(CelestialBody):
@@ -102,8 +95,8 @@ class Planet(CelestialBody):
         x0, y0 = CelestialBody.origo
         self.orbit.updatePosition(Planet.time)
         x, y = self.orbit.getCartesianPosition()
-        x = x * CelestialBody.zoom // Planet.scale
-        y = -y * CelestialBody.zoom // Planet.scale # Minus y to convert cartesian coordinate to point on screen
+        x = x * self.zoom // Planet.scale
+        y = -y * self.zoom // Planet.scale # Minus y to convert cartesian coordinate to point on screen
         self.rect.x = x - self.rect.width // 2 + x0
         self.rect.y = y - self.rect.height // 2 + y0
 
@@ -114,7 +107,7 @@ class PlanetGroup(pygame.sprite.Group):
     def __init__(self, *sprites):
         """Create a new PlanetGroup."""
         self.orbits = []
-        self.zoom = 1
+        self._zoom = 1
         super().__init__()
 
     def add(self, *sprites):
@@ -127,10 +120,24 @@ class PlanetGroup(pygame.sprite.Group):
                 jupiterName, jupiterOrbit = pg.orbits[1].name, pg.orbits[1].orbit
         """
         for sprite in sprites:
+            sprite.zoom = self._zoom
             if isinstance(sprite, Planet):
                 self.orbits.append(types.SimpleNamespace(name=sprite.name, orbit=sprite.orbit))
         super().add(*sprites)
-        
+
+    @property
+    def zoom(self):
+        return self._zoom
+
+    @zoom.setter
+    def zoom(self, value):
+        """Change zoom and update planet drawings."""
+        self._zoom = value
+        for sprite in self:
+            if isinstance(sprite, CelestialBody):
+                sprite.zoom = value
+                sprite.drawCelestialBody()
+
 
 if __name__ == "__main__":
     print("Warning: celestialbody.py is not intended to run stand-alone.")

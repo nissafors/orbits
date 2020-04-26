@@ -82,7 +82,6 @@ class SolarSystem:
     def __init__(self):
         """Create a new SolarSystem."""
         # Set up CelestialBody
-        CelestialBody.zoom = 1
         CelestialBody.referenceRadius = SolarSystem.JUPITER_RADIUS_AT_ZOOM_ONE
         # Init instance
         self.screenSize = (800, 600)
@@ -93,6 +92,7 @@ class SolarSystem:
         self.updateTimeStep()
         self.screen = pygame.display.set_mode(self.screenSize, pygame.HWSURFACE|pygame.DOUBLEBUF|pygame.RESIZABLE)
         self.cbSprites = PlanetGroup()
+        self.cbSprites.zoom = 1
         self.initCelestialBodies()
         self.paused = False
         self.selectedPlanet = 2
@@ -153,7 +153,7 @@ class SolarSystem:
         self.labelGroups["realtime"].add("speedInfo", speedInfoLabel)
         self.updateRealtimeLabels()
 
-        zoomLabel = Label(font, SolarSystem.TEXT, text=SolarSystem.ZOOM_LBL.format(SolarSystem._toPercent(CelestialBody.zoom)), bottom=10, left=10)
+        zoomLabel = Label(font, SolarSystem.TEXT, text=SolarSystem.ZOOM_LBL.format(SolarSystem._toPercent(self.cbSprites.zoom)), bottom=10, left=10)
         self.labelGroups["state"].add("zoom", zoomLabel)
         speedLabel = Label(font, SolarSystem.TEXT, text=SolarSystem.SPEED_LBL.format(SolarSystem.SPEED[self.speedIndex][1]), bottom=10, left=30 + zoomLabel.rect.width)
         self.labelGroups["state"].add("speed", speedLabel)
@@ -248,10 +248,10 @@ class SolarSystem:
             direction (int): 1 is one step up and -1 is one step down.
         """
         factor = 1 / self.zoomStepFactor if direction == SolarSystem.DOWN else self.zoomStepFactor
-        newZoom = CelestialBody.zoom * factor
+        newZoom = self.cbSprites.zoom * factor
         if newZoom >= SolarSystem.MIN_ZOOM and newZoom <= SolarSystem.MAX_ZOOM:
-            CelestialBody.setZoom(newZoom, self.cbSprites)
-            self.labelGroups["state"].get("zoom").text = SolarSystem.ZOOM_LBL.format(SolarSystem._toPercent(CelestialBody.zoom))
+            self.cbSprites.zoom = newZoom
+            self.labelGroups["state"].get("zoom").text = SolarSystem.ZOOM_LBL.format(SolarSystem._toPercent(self.cbSprites.zoom))
             self.labelGroups["state"].get("zoom").renderLabel()
             self.updateLabelPositions()
 
