@@ -19,11 +19,11 @@ class AbstractZoomSprite(pygame.sprite.Sprite):
             origo (int, int): Coordinate system center.
         """
         self._zoom = zoom
-        self.origo = origo
+        self._origo = origo
         super().__init__()
 
     def redraw(self):
-        """Override this method to perform a redraw of your sprite when the zoom property is updated."""
+        """Override this method to perform a redraw of your sprite when zoom or origo changes."""
         pass
 
     @property
@@ -35,6 +35,15 @@ class AbstractZoomSprite(pygame.sprite.Sprite):
     def zoom(self, value):
         """Set new zoom factor."""
         self._zoom = value
+        self.redraw()
+
+    @property
+    def origo(self):
+        return self._origo
+
+    @origo.setter
+    def origo(self, value):
+        self._origo = value
         self.redraw()
 
 
@@ -70,9 +79,9 @@ class AbstractCelestialBody(AbstractZoomSprite):
         if len(self.rings) > 0:
             side = max(r + 1, math.ceil(self.rings[-1] * 2 * r))
         self.image = pygame.Surface([side, side])
-        white = (0xFF, 0xFF, 0xFF)
-        self.image.fill(white)
-        self.image.set_colorkey(white)
+        transparent = (0, 0, 0) if self.color == (0xFF, 0xFF, 0xFF) else (0xFF, 0xFF, 0xFF)
+        self.image.fill(transparent)
+        self.image.set_colorkey(transparent)
         pygame.draw.circle(self.image, self.color, (side // 2, side // 2), r)
         for ring in self.rings:
             ring = max(r + 1, round(ring * r))
@@ -127,7 +136,57 @@ class Planet(AbstractCelestialBody):
         self.rect.y = y - self.rect.height // 2 + y0
 
 
-class ZoomGroup(pygame.sprite.Group):
+class OrbitEllipse(AbstractZoomSprite):
+    """Trace an orbit and draw the resulting ellipse.
+    
+    Class members:
+        scale (int): The orbital distance to the central body in m divided by this number gives the distance to origo in pixels when zoom is 1.
+    """
+    scale = 1e10
+
+    def __init__(self, orbit, color, nSamples=300):
+        """Create a new OrbitEllipse.
+        
+        Args:
+            orbit (KeplerOrbit): The orbit to trace.
+            color (int, int, int): RGB color of ellipse.
+            nSamples (int): Number of orbit coordinates used as vertices in trace. More is smoother but slower.
+        """
+        super().__init__()
+        self.orbit = orbit
+        self.color = color
+        self.nSamples = nSamples
+        self.vertices = []
+        self.createVertexList()
+        self.redraw()
+
+    def createVertexList(self):
+        """Trace orbit and save coordinates to a list."""
+        self.vertices.clear()
+        delta = datetime.timedelta(0)
+        timeStep = datetime.timedelta(seconds=self.orbit.T / self.nSamples)
+        for _ in range(self.nSamples):
+            self.orbit.updatePosition(self.orbit.epoch + delta)
+            x, y = self.orbit.getCartesianPosition()
+            self.vertices.append((x, -y))
+            delta += timeStep
+
+    def redraw(self):
+        """Draw the ellipse and set rect coordinates."""
+        width, height = pygame.display.get_surface().get_size()
+        x0, y0 = width // 2, height // 2
+        self.image = pygame.Surface([width, height])
+        transparent = (0, 0, 0) if self.color == (0xFF, 0xFF, 0xFF) else (0xFF, 0xFF, 0xFF)
+        self.image.fill(transparent)
+        self.image.set_colorkey(transparent)
+        points = []
+        for x, y in self.vertices:
+            points.append((self.zoom * x // self.scale + x0, self.zoom * y // self.scale + y0))
+        self.rect = pygame.draw.polygon(self.image, self.color, points, 1)
+        self.rect.x = self.rect.y = 0
+
+
+class ZoomGroup(pygame.sprite.OrderedUpdates):
     """Container of sprites that can bulk-update all it's AbstractZoomSprites."""
 
     def __init__(self, zoom=1, origo=(0, 0)):

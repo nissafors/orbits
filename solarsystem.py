@@ -7,7 +7,7 @@ __contact__ = "andreas.andersson@tutanota.com"
 
 import pygame, math, datetime
 from keplerorbit import KeplerOrbit
-from zoomsprite import AbstractCelestialBody, Planet, Sun, PlanetGroup
+from zoomsprite import AbstractCelestialBody, Planet, Sun, PlanetGroup, OrbitEllipse
 from label import Label, LabelGroup
 from sciformat import SciFormat
 from dateutil.relativedelta import relativedelta
@@ -78,6 +78,7 @@ class SolarSystem:
     NEPTUNE = (0x60, 0x81, 0xFF)
     PLUTO = (0xFF, 0xF1, 0xD5)
     TEXT = SUN
+    TRACE = (0x50, 0x50, 0x50)
 
     def __init__(self):
         """Create a new SolarSystem."""
@@ -102,25 +103,34 @@ class SolarSystem:
     def initCelestialBodies(self):
         """Create solar system object sprites."""
         mercuryOrbit = KeplerOrbit(e=0.21, a=57909050000, T=SolarSystem._toSeconds(87.9691), O=SolarSystem._toRadians(48.331), o=SolarSystem._toRadians(29.124), M=SolarSystem._toRadians(174.796))
+        mercuryTrace = OrbitEllipse(mercuryOrbit, SolarSystem.TRACE)
         mercury = Planet("Mercury", mercuryOrbit, 0.034, SolarSystem.MERCURY)
         venusOrbit = KeplerOrbit(e=0.0068, a=1.08208628e11, T=SolarSystem._toSeconds(224.7), O=SolarSystem._toRadians(76.680), o=SolarSystem._toRadians(54.884), M=SolarSystem._toRadians(50.115))
+        venusTrace = OrbitEllipse(venusOrbit, SolarSystem.TRACE)
         venus = Planet("Venus", venusOrbit, 0.085, SolarSystem.VENUS)
         earthOrbit = KeplerOrbit()
+        earthTrace = OrbitEllipse(earthOrbit, SolarSystem.TRACE)
         earth = Planet("Earth", earthOrbit, 0.089, SolarSystem.EARTH)
         marsOrbit = KeplerOrbit(e=0.0934, a=2.27942276e11, T=SolarSystem._toSeconds(687.0), O=SolarSystem._toRadians(49.558), o=SolarSystem._toRadians(286.502), M=SolarSystem._toRadians(19.412))
+        marsTrace = OrbitEllipse(marsOrbit, SolarSystem.TRACE)
         mars = Planet("Mars", marsOrbit, 0.048, SolarSystem.MARS)
         jupiterOrbit = KeplerOrbit(e=0.0489, a=7.7857e11, T=SolarSystem._toSeconds(4332.59), O=SolarSystem._toRadians(100.464), o=SolarSystem._toRadians(273.867), M=SolarSystem._toRadians(20.020))
+        jupiterTrace = OrbitEllipse(jupiterOrbit, SolarSystem.TRACE)
         jupiter = Planet("Jupiter", jupiterOrbit, 1.0, SolarSystem.JUPITER)
         saturnOrbit = KeplerOrbit(e=0.0565, a=1.43353e12, T=SolarSystem._toSeconds(10759.22), O=SolarSystem._toRadians(113.665), o=SolarSystem._toRadians(339.392), M=SolarSystem._toRadians(317.020))
+        saturnTrace = OrbitEllipse(saturnOrbit, SolarSystem.TRACE)
         saturn = Planet("Saturn", saturnOrbit, 0.843, SolarSystem.SATURN, [1.3, 1.6, 1.9])
         uranusOrbit = KeplerOrbit(e=0.046381, a=2.87504e12, T=SolarSystem._toSeconds(30688.5), O=SolarSystem._toRadians(74.006), o=SolarSystem._toRadians(96.998857), M=SolarSystem._toRadians(142.2386))
+        uranusTrace = OrbitEllipse(uranusOrbit, SolarSystem.TRACE)
         uranus = Planet("Uranus", uranusOrbit, 0.358, SolarSystem.URANUS, [1.3, 1.6])
         neptuneOrbit = KeplerOrbit(e=0.009456, a=4.50439e12, T=SolarSystem._toSeconds(60182), O=SolarSystem._toRadians(131.784), o=SolarSystem._toRadians(276.336), M=SolarSystem._toRadians(256.228))
+        neptuneTrace = OrbitEllipse(neptuneOrbit, SolarSystem.TRACE)
         neptune = Planet("Neptune", neptuneOrbit, 0.346, SolarSystem.NEPTUNE)
         plutoOrbit = KeplerOrbit(e=0.2488, a=5.90638e12, T=SolarSystem._toSeconds(90560), O=SolarSystem._toRadians(110.299), o=SolarSystem._toRadians(113.834), M=SolarSystem._toRadians(14.53))
+        plutoTrace = OrbitEllipse(plutoOrbit, SolarSystem.TRACE)
         pluto = Planet("Pluto", plutoOrbit, 0.017, SolarSystem.PLUTO)
         sun = Sun(0.15, self.SUN, 3)
-        self.cbSprites.add(mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto, sun)
+        self.cbSprites.add(mercuryTrace, venusTrace, earthTrace, marsTrace, jupiterTrace, saturnTrace, uranusTrace, neptuneTrace, plutoTrace, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto, sun)
 
     def initLabels(self):
         """Create info text labels."""
