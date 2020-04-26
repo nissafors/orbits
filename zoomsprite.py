@@ -1,4 +1,4 @@
-"""celestialbody.py: Create and group celestial body sprites for PyGame."""
+"""zoomsprite.py: Create and group celestial body sprites for PyGame."""
 
 __author__ = "Andreas Andersson"
 __copyright__ = "Copyright 2020, Andreas Andersson"
@@ -8,15 +8,42 @@ __contact__ = "andreas.andersson@tutanota.com"
 import pygame, math, datetime, types
 from keplerorbit import KeplerOrbit
 
-class CelestialBody(pygame.sprite.Sprite):
+class AbstractZoomSprite(pygame.sprite.Sprite):
+    """Base class for zoomable sprites."""
+
+    def __init__(self, zoom=1, origo=(0, 0)):
+        """Create a new AbstractZoomSprite.
+        
+        Args:
+            zoom (float): Zoom factor.
+            origo (int, int): Coordinate system center.
+        """
+        self._zoom = zoom
+        self.origo = origo
+        super().__init__()
+
+    def redraw(self):
+        """Override this method to perform a redraw of your sprite when the zoom property is updated."""
+        pass
+
+    @property
+    def zoom(self):
+        """Return current zoom factor."""
+        return self._zoom
+
+    @zoom.setter
+    def zoom(self, value):
+        """Set new zoom factor."""
+        self._zoom = value
+        self.redraw()
+
+
+class AbstractCelestialBody(AbstractZoomSprite):
     """Base class for celestial body sprites.
 
     Class members:
-        origo (int, int): Screen coordinats x0 and y0 to origo.
-        zoom (int): Zoom factor.
         referenceRadius (int): Radius in pixels corresponding to a relative radius of one.
     """
-    origo = (0, 0)
     referenceRadius = 15
 
     def __init__(self, radius, color, rings=[], minRadius=1):
@@ -34,12 +61,11 @@ class CelestialBody(pygame.sprite.Sprite):
         self.color = color
         self.rings = rings
         self.minRadius = minRadius
-        self.zoom = 1
-        self.drawCelestialBody()
+        self.redraw()
 
-    def drawCelestialBody(self):
+    def redraw(self):
         """Update sprite drawing of a celestial body."""
-        r = max(self.minRadius, round(self.radius * CelestialBody.referenceRadius * self.zoom))
+        r = max(self.minRadius, round(self.radius * AbstractCelestialBody.referenceRadius * self.zoom))
         side = r * 2
         if len(self.rings) > 0:
             side = max(r + 1, math.ceil(self.rings[-1] * 2 * r))
@@ -55,7 +81,7 @@ class CelestialBody(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
 
-class Sun(CelestialBody):
+class Sun(AbstractCelestialBody):
     """The sun, centered in the solar system."""
 
     def __init__(self, radius, color, minRadius):
@@ -64,12 +90,12 @@ class Sun(CelestialBody):
 
     def update(self, *args):
         """Update sun position and size on screen."""
-        x0, y0 = Planet.origo
+        x0, y0 = self.origo
         self.rect.x = x0 - self.rect.width // 2
         self.rect.y = y0 - self.rect.height // 2
 
 
-class Planet(CelestialBody):
+class Planet(AbstractCelestialBody):
     """A planet sprite in a Kepler orbit around origo.
     
     Class members:
@@ -92,7 +118,7 @@ class Planet(CelestialBody):
 
     def update(self, *args):
         """Update screen coordinates to correspond to planet position at Planet.time."""
-        x0, y0 = CelestialBody.origo
+        x0, y0 = self.origo
         self.orbit.updatePosition(Planet.time)
         x, y = self.orbit.getCartesianPosition()
         x = x * self.zoom // Planet.scale
@@ -101,13 +127,61 @@ class Planet(CelestialBody):
         self.rect.y = y - self.rect.height // 2 + y0
 
 
-class PlanetGroup(pygame.sprite.Group):
+class ZoomGroup(pygame.sprite.Group):
+    """Container of sprites that can bulk-update all it's AbstractZoomSprites."""
+
+    def __init__(self, zoom=1, origo=(0, 0)):
+        """Create a new zoomGroup.
+        
+        Args:
+            zoom (float): Zoom factor.
+            origo (int, int): Coordinate system center.
+        """
+        self._zoom = zoom
+        self._origo = origo
+        super().__init__()
+
+    def add(self, *sprites):
+        """Add sprites to container. For all AbstractZoomSprite:s, set zoom and origo."""
+        for sprite in sprites:
+            if isinstance(sprite, AbstractZoomSprite):
+                sprite.zoom = self._zoom
+                sprite.origo = self._origo
+        super().add(*sprites)
+
+    @property
+    def zoom(self):
+        """Return current zoom factor."""
+        return self._zoom
+
+    @zoom.setter
+    def zoom(self, value):
+        """Set new zoom value and update all contained AbstractZoomSprite:s."""
+        self._zoom = value
+        for sprite in self:
+            if isinstance(sprite, AbstractZoomSprite):
+                sprite.zoom = value
+
+    @property
+    def origo(self):
+        """Return current origo."""
+        return self._origo
+
+    @origo.setter
+    def origo(self, value):
+        """Set new origo and update all contained AbstractZoomSprite:s."""
+        self._origo = value
+        for sprite in self:
+            if isinstance(sprite, AbstractZoomSprite):
+                sprite.origo = value
+
+
+class PlanetGroup(ZoomGroup):
     """Container of sprites with access to Planet orbits in the order they were added."""
 
     def __init__(self, *sprites):
         """Create a new PlanetGroup."""
         self.orbits = []
-        self._zoom = 1
         super().__init__()
 
     def add(self, *sprites):
@@ -120,24 +194,10 @@ class PlanetGroup(pygame.sprite.Group):
                 jupiterName, jupiterOrbit = pg.orbits[1].name, pg.orbits[1].orbit
         """
         for sprite in sprites:
-            sprite.zoom = self._zoom
             if isinstance(sprite, Planet):
                 self.orbits.append(types.SimpleNamespace(name=sprite.name, orbit=sprite.orbit))
         super().add(*sprites)
 
-    @property
-    def zoom(self):
-        return self._zoom
-
-    @zoom.setter
-    def zoom(self, value):
-        """Change zoom and update planet drawings."""
-        self._zoom = value
-        for sprite in self:
-            if isinstance(sprite, CelestialBody):
-                sprite.zoom = value
-                sprite.drawCelestialBody()
-
 
 if __name__ == "__main__":
-    print("Warning: celestialbody.py is not intended to run stand-alone.")
+    print("Warning: zoomsprite.py is not intended to run stand-alone.")

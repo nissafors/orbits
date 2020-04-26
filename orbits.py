@@ -7,7 +7,6 @@ __contact__ = "andreas.andersson@tutanota.com"
 
 import pygame
 from solarsystem import SolarSystem
-from celestialbody import Planet
 
 # Init game
 pygame.init()

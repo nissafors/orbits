@@ -7,7 +7,7 @@ __contact__ = "andreas.andersson@tutanota.com"
 
 import pygame, math, datetime
 from keplerorbit import KeplerOrbit
-from celestialbody import CelestialBody, Planet, Sun, PlanetGroup
+from zoomsprite import AbstractCelestialBody, Planet, Sun, PlanetGroup
 from label import Label, LabelGroup
 from sciformat import SciFormat
 from dateutil.relativedelta import relativedelta
@@ -81,9 +81,7 @@ class SolarSystem:
 
     def __init__(self):
         """Create a new SolarSystem."""
-        # Set up CelestialBody
-        CelestialBody.referenceRadius = SolarSystem.JUPITER_RADIUS_AT_ZOOM_ONE
-        # Init instance
+        AbstractCelestialBody.referenceRadius = SolarSystem.JUPITER_RADIUS_AT_ZOOM_ONE
         self.screenSize = (800, 600)
         self.fps = 30
         self.zoomStepFactor = 1.1
@@ -204,9 +202,9 @@ class SolarSystem:
         self.targetTimeReached = False
 
     def updateOrigo(self):
-        """Find origo on screen and update CelestialBody."""
+        """Find origo on screen and update sprites."""
         width, height = self.screen.get_size()
-        CelestialBody.origo = (width // 2, height // 2)
+        self.cbSprites.origo = (width // 2, height // 2)
 
     def updateLabelPositions(self, group=None):
         """Set on-screen positions of info text labels."""
