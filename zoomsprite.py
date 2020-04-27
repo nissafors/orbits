@@ -186,7 +186,7 @@ class OrbitEllipse(AbstractZoomSprite):
         self.rect.x = self.rect.y = 0
 
 
-class ZoomGroup(pygame.sprite.OrderedUpdates):
+class ZoomGroup(pygame.sprite.Group):
     """Container of sprites that can bulk-update all it's AbstractZoomSprites."""
 
     def __init__(self, zoom=1, origo=(0, 0)):

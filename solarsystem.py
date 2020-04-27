@@ -7,7 +7,7 @@ __contact__ = "andreas.andersson@tutanota.com"
 
 import pygame, math, datetime
 from keplerorbit import KeplerOrbit
-from zoomsprite import AbstractCelestialBody, Planet, Sun, PlanetGroup, OrbitEllipse
+from zoomsprite import AbstractCelestialBody, Planet, Sun, PlanetGroup, OrbitEllipse, ZoomGroup
 from label import Label, LabelGroup
 from sciformat import SciFormat
 from dateutil.relativedelta import relativedelta
@@ -62,6 +62,7 @@ class SolarSystem:
     PAUSE_HELP_LBL = "SPACE: Pause"
     ORBIT_HELP_LBL = "1-9: Select planet"
     SET_DATE_HELP_LBL = "F2: Set date"
+    TOGGLE_TRACE_HELP_LBL = "F3: Toggle tracing"
     PLANET_INFO_LBL = "{}"
     DISTANCE_INFO_LBL = "Distance to sun: {:.02} km"
     SPEED_INFO_LBL = "Speed: {:3.02} km/s"
@@ -91,16 +92,18 @@ class SolarSystem:
         self.updateTimeStep()
         self.screen = pygame.display.set_mode(self.screenSize, pygame.HWSURFACE|pygame.DOUBLEBUF|pygame.RESIZABLE)
         self.cbSprites = PlanetGroup()
-        self.cbSprites.zoom = 1
-        self.initCelestialBodies()
+        self.traceSprites = ZoomGroup()
+        self.cbSprites.zoom = self.traceSprites.zoom = 1
+        self.initSprites()
         self.paused = False
+        self.showTraces = False
         self.selectedPlanet = 2
         self.initLabels()
         self.updateLabelPositions()
         self.updateOrigo()
         self.isAlive = True
 
-    def initCelestialBodies(self):
+    def initSprites(self):
         """Create solar system object sprites."""
         mercuryOrbit = KeplerOrbit(e=0.21, a=57909050000, T=SolarSystem._toSeconds(87.9691), O=SolarSystem._toRadians(48.331), o=SolarSystem._toRadians(29.124), M=SolarSystem._toRadians(174.796))
         mercuryTrace = OrbitEllipse(mercuryOrbit, SolarSystem.TRACE)
@@ -130,7 +133,8 @@ class SolarSystem:
         plutoTrace = OrbitEllipse(plutoOrbit, SolarSystem.TRACE)
         pluto = Planet("Pluto", plutoOrbit, 0.017, SolarSystem.PLUTO)
         sun = Sun(0.15, self.SUN, 3)
-        self.cbSprites.add(mercuryTrace, venusTrace, earthTrace, marsTrace, jupiterTrace, saturnTrace, uranusTrace, neptuneTrace, plutoTrace, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto, sun)
+        self.cbSprites.add(mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto, sun)
+        self.traceSprites.add(mercuryTrace, venusTrace, earthTrace, marsTrace, jupiterTrace, saturnTrace, uranusTrace, neptuneTrace, plutoTrace)
 
     def initLabels(self):
         """Create info text labels."""
@@ -150,6 +154,8 @@ class SolarSystem:
         self.labelGroups["help"].add("planet", planetKeysLabel)
         setDateLabel = Label(font, SolarSystem.TEXT, text=SolarSystem.SET_DATE_HELP_LBL, top=labelHeight * 4 + 10, right=10)
         self.labelGroups["help"].add("date", setDateLabel)
+        toggleTracingLabel = Label(font, SolarSystem.TEXT, text=SolarSystem.TOGGLE_TRACE_HELP_LBL, top=labelHeight * 5 + 10, right=10)
+        self.labelGroups["help"].add("tracing", toggleTracingLabel)
 
         timeLabel = Label(font, SolarSystem.TEXT, top=10, left=10)
         self.labelGroups["realtime"].add("time", timeLabel)
@@ -169,6 +175,8 @@ class SolarSystem:
     def update(self):
         """Update orbits in game loop."""
         self.screen.fill(SolarSystem.BACKGROUND)
+        if self.showTraces:
+            self.traceSprites.draw(self.screen)
         self.cbSprites.update()
         self.cbSprites.draw(self.screen)
         Planet.time += self.timeStep
@@ -214,7 +222,9 @@ class SolarSystem:
     def updateOrigo(self):
         """Find origo on screen and update sprites."""
         width, height = self.screen.get_size()
-        self.cbSprites.origo = (width // 2, height // 2)
+        origo = (width // 2, height // 2)
+        self.cbSprites.origo = origo
+        self.traceSprites.origo = origo
 
     def updateLabelPositions(self, group=None):
         """Set on-screen positions of info text labels."""
@@ -259,6 +269,7 @@ class SolarSystem:
         newZoom = self.cbSprites.zoom * factor
         if newZoom >= SolarSystem.MIN_ZOOM and newZoom <= SolarSystem.MAX_ZOOM:
             self.cbSprites.zoom = newZoom
+            self.traceSprites.zoom = newZoom
             self.labelGroups["state"].get("zoom").text = SolarSystem.ZOOM_LBL.format(SolarSystem._toPercent(self.cbSprites.zoom))
             self.labelGroups["state"].get("zoom").renderLabel()
             self.updateLabelPositions()
@@ -319,6 +330,8 @@ class SolarSystem:
                 time = self.getUserInputDate()
                 if isinstance(time, datetime.datetime):
                     Planet.time = time
+            elif event.key == pygame.K_F3:
+                self.showTraces = not self.showTraces
 
     @staticmethod
     def _toRadians(degrees):
